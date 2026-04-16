@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linen Stocktake</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #f6f8fb; color: #222; }
+  h1 { margin: 0 0 8px 0; font-size: 24px; color: #1f4e78; }
+  p { margin: 0 0 12px 0; }
+  .controls { margin: 12px 0 14px 0; display:flex; gap:8px; flex-wrap:wrap; }
+  button {
+    padding: 10px 14px; border: 0; border-radius: 8px; background: #1f4e78; color: #fff;
+    font-size: 14px; cursor: pointer;
+  }
+  button.secondary { background: #6b7280; }
+  button.delete-btn {
+    background: #b42318;
+    padding: 8px 10px;
+    width: 100%;
+  }
+  .table-wrap { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  table { border-collapse: collapse; width: 100%; min-width: 1280px; background: white; }
+  th, td { border: 1px solid #dbe4f0; padding: 8px; text-align: left; vertical-align: top; }
+  th { background: #1f4e78; color: #fff; position: sticky; top: 0; z-index: 1; }
+  input, select, textarea {
+    width: 100%; box-sizing: border-box; border: 1px solid #c9d5ea; border-radius: 6px;
+    padding: 8px; font-size: 14px; background: #fff;
+  }
+  input[readonly] { background: #f2f5fa; color: #333; }
+  textarea { min-height: 38px; resize: vertical; }
+  .hint { font-size: 13px; color: #555; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h1>Linen Stocktake</h1>
+  <p>Enter the <strong>Date</strong>, choose the <strong>Area</strong> and <strong>Type of Linen</strong>, then fill the stock numbers. The app auto-generates day, collection day, and return day. No collections or returns on Saturday or Sunday.</p>
+
+  <div class="controls">
+    <button onclick="addRow()">Add Row</button>
+    <button class="secondary" onclick="clearData()">Clear All</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="stockTable">
+      <thead>
+        <tr>
+          <th style="min-width:120px;">Date</th>
+          <th style="min-width:110px;">Day</th>
+          <th style="min-width:170px;">Area</th>
+          <th style="min-width:170px;">Type of Linen</th>
+          <th style="min-width:170px;">Clean Stock On Hand (Evening)</th>
+          <th style="min-width:150px;">Dirty Sent (Evening)</th>
+          <th style="min-width:130px;">Collection Day</th>
+          <th style="min-width:130px;">Return Day</th>
+          <th style="min-width:220px;">Notes</th>
+          <th style="min-width:110px;">Delete</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="hint">
+    Areas: 1910 Dining Room, DOY Bar, Garden, Brabourne Room.<br>
+    Linen types: Napkins, Polishing Cloths.
+  </div>
+
+<script>
+const STORAGE_KEY = "linenStocktakeData_v3";
+const AREAS = ["", "1910 Dining Room", "DOY Bar", "Garden", "Brabourne Room"];
+const LINEN_TYPES = ["", "Napkins", "Polishing Cloths"];
+
+function formatDateLocal(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function displayDate(d) {
+  return formatDateLocal(d);
+}
+
+function nextWorkingDay(dateObj) {
+  const d = new Date(dateObj);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+function addWorkingDays(dateObj, n) {
+  const d = new Date(dateObj);
+  let added = 0;
+  while (added < n) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) {
+      added++;
+    }
+  }
+  return d;
+}
+
+function calculateDates(dateValue) {
+  if (!dateValue) {
+    return { day: "", collection: "", ret: "" };
+  }
+  const [y, m, d] = dateValue.split("-").map(Number);
+  const base = new Date(y, m - 1, d);
+
+  const day = base.toLocaleDateString("en-GB", { weekday: "long" });
+  const collection = nextWorkingDay(base);
+  const ret = addWorkingDays(collection, 2);
+
+  return {
+    day,
+    collection: displayDate(collection),
+    ret: displayDate(ret)
+  };
+}
+
+function createSelect(options, value, onChange) {
+  const select = document.createElement("select");
+  options.forEach(opt => {
+    const option = document.createElement("option");
+    option.value = opt;
+    option.textContent = opt;
+    if (opt === value) option.selected = true;
+    select.appendChild(option);
+  });
+  select.onchange = onChange;
+  return select;
+}
+
+function createInput(type, value, readOnly, onInput) {
+  const input = document.createElement("input");
+  input.type = type;
+  input.value = value || "";
+  if (readOnly) input.readOnly = true;
+  if (onInput) input.oninput = onInput;
+  return input;
+}
+
+function createTextarea(value, onInput) {
+  const ta = document.createElement("textarea");
+  ta.value = value || "";
+  ta.oninput = onInput;
+  return ta;
+}
+
+function saveData() {
+  const rows = [];
+  document.querySelectorAll("#stockTable tbody tr").forEach(tr => {
+    const fields = tr.querySelectorAll("input, select, textarea");
+    rows.push({
+      date: fields[0].value,
+      day: fields[1].value,
+      area: fields[2].value,
+      linen: fields[3].value,
+      clean: fields[4].value,
+      dirty: fields[5].value,
+      collection: fields[6].value,
+      ret: fields[7].value,
+      notes: fields[8].value
+    });
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+}
+
+function updateCalculatedFields(tr) {
+  const fields = tr.querySelectorAll("input, select, textarea");
+  const dateValue = fields[0].value;
+  const calc = calculateDates(dateValue);
+  fields[1].value = calc.day;
+  fields[6].value = calc.collection;
+  fields[7].value = calc.ret;
+  saveData();
+}
+
+function deleteRow(btn) {
+  const tr = btn.closest("tr");
+  tr.remove();
+  if (document.querySelectorAll("#stockTable tbody tr").length === 0) {
+    buildRow();
+  }
+  saveData();
+}
+
+function buildRow(data = {}) {
+  const tbody = document.querySelector("#stockTable tbody");
+  const tr = document.createElement("tr");
+
+  const cells = [];
+  for (let i = 0; i < 10; i++) {
+    const td = document.createElement("td");
+    tr.appendChild(td);
+    cells.push(td);
+  }
+
+  const dateInput = createInput("date", data.date || "", false, () => updateCalculatedFields(tr));
+  const dayInput = createInput("text", data.day || "", true);
+  const areaSelect = createSelect(AREAS, data.area || "", saveData);
+  const linenSelect = createSelect(LINEN_TYPES, data.linen || "", saveData);
+  const cleanInput = createInput("number", data.clean || "", false, saveData);
+  const dirtyInput = createInput("number", data.dirty || "", false, saveData);
+  const collectionInput = createInput("date", data.collection || "", true);
+  const returnInput = createInput("date", data.ret || "", true);
+  const notesInput = createTextarea(data.notes || "", saveData);
+
+  const deleteButton = document.createElement("button");
+  deleteButton.textContent = "Delete";
+  deleteButton.className = "delete-btn";
+  deleteButton.onclick = function() { deleteRow(deleteButton); };
+
+  cells[0].appendChild(dateInput);
+  cells[1].appendChild(dayInput);
+  cells[2].appendChild(areaSelect);
+  cells[3].appendChild(linenSelect);
+  cells[4].appendChild(cleanInput);
+  cells[5].appendChild(dirtyInput);
+  cells[6].appendChild(collectionInput);
+  cells[7].appendChild(returnInput);
+  cells[8].appendChild(notesInput);
+  cells[9].appendChild(deleteButton);
+
+  tbody.appendChild(tr);
+
+  if (data.date) updateCalculatedFields(tr);
+}
+
+function addRow() {
+  buildRow();
+  saveData();
+}
+
+function clearData() {
+  if (confirm("Clear all saved data from this iPad?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    document.querySelector("#stockTable tbody").innerHTML = "";
+    buildRow();
+    saveData();
+  }
+}
+
+function loadData() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    buildRow();
+    return;
+  }
+  try {
+    const rows = JSON.parse(saved);
+    if (!Array.isArray(rows) || rows.length === 0) {
+      buildRow();
+      return;
+    }
+    rows.forEach(r => buildRow(r));
+  } catch (e) {
+    buildRow();
+  }
+}
+
+window.onload = loadData;
+</script>
+</body>
+</html>
