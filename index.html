@@ -5,238 +5,378 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Linen Stocktake</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #f6f8fb; color: #222; }
-  h1 { margin: 0 0 8px 0; font-size: 24px; color: #1f4e78; }
-  p { margin: 0 0 12px 0; }
-  .controls { margin: 12px 0 14px 0; display:flex; gap:8px; flex-wrap:wrap; }
-  button {
-    padding: 10px 14px; border: 0; border-radius: 8px; background: #1f4e78; color: #fff;
-    font-size: 14px; cursor: pointer;
-  }
-  button.secondary { background: #6b7280; }
-  button.delete-btn {
-    background: #b42318;
-    padding: 8px 10px;
-    width: 100%;
-  }
-  .table-wrap { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-  table { border-collapse: collapse; width: 100%; min-width: 1280px; background: white; }
-  th, td { border: 1px solid #dbe4f0; padding: 8px; text-align: left; vertical-align: top; }
-  th { background: #1f4e78; color: #fff; position: sticky; top: 0; z-index: 1; }
-  input, select, textarea {
-    width: 100%; box-sizing: border-box; border: 1px solid #c9d5ea; border-radius: 6px;
-    padding: 8px; font-size: 14px; background: #fff;
-  }
-  input[readonly] { background: #f2f5fa; color: #333; }
-  textarea { min-height: 38px; resize: vertical; }
-  .hint { font-size: 13px; color: #555; margin-top: 8px; }
+body{font-family:Arial,sans-serif;margin:0;padding:16px;background:#f6f8fb;color:#222}
+h1,h2{margin:0 0 8px;color:#1f4e78}
+p{margin:0 0 12px}
+.controls{margin:12px 0 14px;display:flex;gap:8px;flex-wrap:wrap}
+button{padding:10px 14px;border:0;border-radius:8px;background:#1f4e78;color:#fff;font-size:14px;cursor:pointer}
+button.secondary{background:#6b7280}
+button.delete-btn{background:#b42318;padding:8px 10px;width:100%}
+button.save-btn{background:#027a48;padding:8px 10px;width:100%}
+button.unlock-btn{background:#b54708;padding:8px 10px;width:100%}
+.table-wrap,.card{overflow-x:auto;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:18px}
+table{border-collapse:collapse;width:100%;min-width:1550px;background:#fff}
+th,td{border:1px solid #dbe4f0;padding:8px;text-align:left;vertical-align:top}
+th{background:#1f4e78;color:#fff;position:sticky;top:0;z-index:1}
+input,select,textarea{width:100%;box-sizing:border-box;border:1px solid #c9d5ea;border-radius:6px;padding:8px;font-size:14px;background:#fff}
+input[readonly]{background:#f2f5fa;color:#333}
+textarea{min-height:38px;resize:vertical}
+.hint,.note{font-size:13px;color:#555;margin-top:8px}
+.report-wrap{padding:14px}
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
+.metric{background:#f8fbff;border:1px solid #dbe4f0;border-radius:10px;padding:12px}
+.metric .label{font-size:12px;color:#666;margin-bottom:6px}
+.metric .value{font-size:22px;font-weight:bold;color:#1f4e78}
+.report-table{width:100%;min-width:720px}
+.report-table th{position:static}
+.top-line{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
+.top-line .field{min-width:220px}
+.negative{color:#b42318!important}
+.positive{color:#027a48!important}
+.locked-row td{background:#f8fafc}
+.mismatch{background:#fde2e2!important;border-color:#ef4444!important}
+.small{font-size:12px;color:#666}
 </style>
 </head>
 <body>
-  <h1>Linen Stocktake</h1>
-  <p>Enter the <strong>Date</strong>, choose the <strong>Area</strong> and <strong>Type of Linen</strong>, then fill the stock numbers. The app auto-generates day, collection day, and return day. No collections or returns on Saturday or Sunday.</p>
+<h1>Linen Stocktake</h1>
+<p>Enter the <strong>Date</strong>, choose the <strong>Area</strong> and <strong>Type of Linen</strong>, then fill the stock numbers. The app auto-generates day, collection day, and return day. No collections or returns on Saturday or Sunday.</p>
 
-  <div class="controls">
-    <button onclick="addRow()">Add Row</button>
-    <button class="secondary" onclick="clearData()">Clear All</button>
-  </div>
+<div class="controls">
+  <button onclick="addRow()">Add Row</button>
+  <button class="secondary" onclick="clearData()">Clear All</button>
+</div>
 
-  <div class="table-wrap">
-    <table id="stockTable">
-      <thead>
-        <tr>
-          <th style="min-width:120px;">Date</th>
-          <th style="min-width:110px;">Day</th>
-          <th style="min-width:170px;">Area</th>
-          <th style="min-width:170px;">Type of Linen</th>
-          <th style="min-width:170px;">Clean Stock On Hand (Evening)</th>
-          <th style="min-width:150px;">Dirty Sent (Evening)</th>
-          <th style="min-width:130px;">Collection Day</th>
-          <th style="min-width:130px;">Return Day</th>
-          <th style="min-width:220px;">Notes</th>
-          <th style="min-width:110px;">Delete</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<div class="table-wrap">
+  <table id="stockTable">
+    <thead>
+      <tr>
+        <th style="min-width:120px;">Date</th>
+        <th style="min-width:110px;">Day</th>
+        <th style="min-width:170px;">Area</th>
+        <th style="min-width:170px;">Type of Linen</th>
+        <th style="min-width:170px;">Clean Stock Received (Morning)</th>
+        <th style="min-width:170px;">Clean Stock On Hand (Evening)</th>
+        <th style="min-width:150px;">Dirty Sent (Evening)</th>
+        <th style="min-width:130px;">Collection Day</th>
+        <th style="min-width:130px;">Return Day</th>
+        <th style="min-width:220px;">Notes</th>
+        <th style="min-width:110px;">Save</th>
+        <th style="min-width:110px;">Delete</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
-  <div class="hint">
-    Areas: 1910 Dining Room, DOY Bar, Garden, Brabourne Room.<br>
-    Linen types: Napkins, Polishing Cloths.
+<div class="hint">
+  Areas: 1910 Dining Room, DOY Bar, Garden, Brabourne Room.<br>
+  Linen types: Napkins, Polishing Cloths.<br>
+  <span class="small">Expected return is calculated automatically in the background based on return day, area and linen type. The first baseline rows stay neutral until there is matching return history. If actual received does not match expected, the received cell turns red.</span>
+</div>
+
+<div class="card">
+  <div class="report-wrap">
+    <h2>Monthly Report</h2>
+    <div class="top-line">
+      <div class="field">
+        <label for="reportMonth"><strong>Select Month</strong></label>
+        <input type="month" id="reportMonth" onchange="renderReport()">
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="metric"><div class="label">Total Sent</div><div class="value" id="totalSent">0</div></div>
+      <div class="metric"><div class="label">Total Received</div><div class="value" id="totalReceived">0</div></div>
+      <div class="metric"><div class="label">Variance (Received - Sent)</div><div class="value" id="totalVariance">0</div></div>
+      <div class="metric"><div class="label">Napkins Sent</div><div class="value" id="napkinsSent">0</div></div>
+      <div class="metric"><div class="label">Napkins Received</div><div class="value" id="napkinsReceived">0</div></div>
+      <div class="metric"><div class="label">Cloths Sent</div><div class="value" id="clothsSent">0</div></div>
+      <div class="metric"><div class="label">Cloths Received</div><div class="value" id="clothsReceived">0</div></div>
+    </div>
+
+    <div style="margin-top:16px; overflow-x:auto;">
+      <table class="report-table" id="areaReportTable">
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Sent</th>
+            <th>Received</th>
+            <th>Variance</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="note">Variance is calculated as <strong>Received - Sent</strong> for the selected month.</div>
   </div>
+</div>
 
 <script>
-const STORAGE_KEY = "linenStocktakeData_v3";
+const STORAGE_KEY = "linenStocktakeData_v7";
 const AREAS = ["", "1910 Dining Room", "DOY Bar", "Garden", "Brabourne Room"];
 const LINEN_TYPES = ["", "Napkins", "Polishing Cloths"];
 
-function formatDateLocal(d) {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+// Column indexes in each row's input/select/textarea NodeList:
+// 0 Date
+// 1 Day
+// 2 Area
+// 3 Linen
+// 4 Received Morning
+// 5 Clean On Hand Evening
+// 6 Dirty Sent Evening
+// 7 Collection Day
+// 8 Return Day
+// 9 Notes
 
-function displayDate(d) {
-  return formatDateLocal(d);
+function formatDateLocal(d){
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
 }
-
-function nextWorkingDay(dateObj) {
+function nextWorkingDay(dateObj){
   const d = new Date(dateObj);
-  d.setDate(d.getDate() + 1);
-  while (d.getDay() === 0 || d.getDay() === 6) {
-    d.setDate(d.getDate() + 1);
-  }
+  d.setDate(d.getDate()+1);
+  while(d.getDay()===0 || d.getDay()===6){ d.setDate(d.getDate()+1); }
   return d;
 }
-
-function addWorkingDays(dateObj, n) {
+function addWorkingDays(dateObj,n){
   const d = new Date(dateObj);
   let added = 0;
-  while (added < n) {
-    d.setDate(d.getDate() + 1);
-    if (d.getDay() !== 0 && d.getDay() !== 6) {
-      added++;
-    }
+  while(added < n){
+    d.setDate(d.getDate()+1);
+    if(d.getDay()!==0 && d.getDay()!==6){ added++; }
   }
   return d;
 }
-
-function calculateDates(dateValue) {
-  if (!dateValue) {
-    return { day: "", collection: "", ret: "" };
-  }
-  const [y, m, d] = dateValue.split("-").map(Number);
-  const base = new Date(y, m - 1, d);
-
-  const day = base.toLocaleDateString("en-GB", { weekday: "long" });
+function calculateDates(dateValue){
+  if(!dateValue) return {day:"", collection:"", ret:""};
+  const parts = dateValue.split("-").map(Number);
+  const base = new Date(parts[0], parts[1]-1, parts[2]);
+  const day = base.toLocaleDateString("en-GB", {weekday:"long"});
   const collection = nextWorkingDay(base);
   const ret = addWorkingDays(collection, 2);
-
-  return {
-    day,
-    collection: displayDate(collection),
-    ret: displayDate(ret)
-  };
+  return {day, collection: formatDateLocal(collection), ret: formatDateLocal(ret)};
 }
 
-function createSelect(options, value, onChange) {
+function createSelect(options, value, onChange){
   const select = document.createElement("select");
-  options.forEach(opt => {
+  options.forEach(opt=>{
     const option = document.createElement("option");
     option.value = opt;
     option.textContent = opt;
-    if (opt === value) option.selected = true;
+    if(opt === value) option.selected = true;
     select.appendChild(option);
   });
   select.onchange = onChange;
   return select;
 }
-
-function createInput(type, value, readOnly, onInput) {
+function createInput(type, value, readOnly, onInput){
   const input = document.createElement("input");
   input.type = type;
   input.value = value || "";
-  if (readOnly) input.readOnly = true;
-  if (onInput) input.oninput = onInput;
+  input.readOnly = !!readOnly;
+  if(onInput) input.oninput = onInput;
   return input;
 }
-
-function createTextarea(value, onInput) {
+function createTextarea(value, onInput){
   const ta = document.createElement("textarea");
   ta.value = value || "";
-  ta.oninput = onInput;
+  if(onInput) ta.oninput = onInput;
   return ta;
 }
 
-function saveData() {
-  const rows = [];
-  document.querySelectorAll("#stockTable tbody tr").forEach(tr => {
-    const fields = tr.querySelectorAll("input, select, textarea");
-    rows.push({
-      date: fields[0].value,
-      day: fields[1].value,
-      area: fields[2].value,
-      linen: fields[3].value,
-      clean: fields[4].value,
-      dirty: fields[5].value,
-      collection: fields[6].value,
-      ret: fields[7].value,
-      notes: fields[8].value
-    });
-  });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+function getFieldSets(tr){
+  return tr.querySelectorAll("input,select,textarea");
 }
 
-function updateCalculatedFields(tr) {
-  const fields = tr.querySelectorAll("input, select, textarea");
-  const dateValue = fields[0].value;
-  const calc = calculateDates(dateValue);
-  fields[1].value = calc.day;
-  fields[6].value = calc.collection;
-  fields[7].value = calc.ret;
+function getAllRows(){
+  const rows = [];
+  document.querySelectorAll("#stockTable tbody tr").forEach(tr=>{
+    const f = getFieldSets(tr);
+    rows.push({
+      date: f[0].value,
+      day: f[1].value,
+      area: f[2].value,
+      linen: f[3].value,
+      received: Number(f[4].value || 0),
+      clean: Number(f[5].value || 0),
+      dirty: Number(f[6].value || 0),
+      collection: f[7].value,
+      ret: f[8].value,
+      notes: f[9].value,
+      locked: tr.dataset.locked === "true"
+    });
+  });
+  return rows;
+}
+
+function setRowLocked(tr, locked){
+  const f = getFieldSets(tr);
+
+  // Text/date/number/textarea fields
+  // Always readonly: day, collection, return
+  f[0].readOnly = locked ? true : false;   // date
+  f[1].readOnly = true;                    // day
+  f[4].readOnly = locked ? true : false;   // received
+  f[5].readOnly = locked ? true : false;   // clean on hand
+  f[6].readOnly = locked ? true : false;   // dirty sent
+  f[7].readOnly = true;                    // collection
+  f[8].readOnly = true;                    // return
+  f[9].readOnly = locked ? true : false;   // notes
+
+  // Selects
+  f[2].disabled = locked;                  // area
+  f[3].disabled = locked;                  // linen
+
+  tr.dataset.locked = locked ? "true" : "false";
+  tr.classList.toggle("locked-row", locked);
+
+  const saveBtn = tr.querySelector(".save-btn, .unlock-btn");
+  if(saveBtn){
+    if(locked){
+      saveBtn.textContent = "Unlock";
+      saveBtn.className = "unlock-btn";
+      saveBtn.onclick = function(){ setRowLocked(tr, false); saveData(); };
+    } else {
+      saveBtn.textContent = "Save";
+      saveBtn.className = "save-btn";
+      saveBtn.onclick = function(){ setRowLocked(tr, true); saveData(); };
+    }
+  }
+}
+
+function computeExpectedForRow(targetTr){
+  const targetFields = getFieldSets(targetTr);
+  const targetDate = targetFields[0].value;
+  const targetArea = targetFields[2].value;
+  const targetLinen = targetFields[3].value;
+
+  if(!targetDate || !targetArea || !targetLinen) return 0;
+
+  let expected = 0;
+  document.querySelectorAll("#stockTable tbody tr").forEach(tr=>{
+    if(tr === targetTr) return;
+    const f = getFieldSets(tr);
+    const rowArea = f[2].value;
+    const rowLinen = f[3].value;
+    const rowReturn = f[8].value;
+    const rowDirty = Number(f[6].value || 0);
+
+    if(rowArea === targetArea && rowLinen === targetLinen && rowReturn === targetDate){
+      expected += rowDirty;
+    }
+  });
+  return expected;
+}
+
+function applyDiscrepancyHighlight(tr){
+  const f = getFieldSets(tr);
+  const receivedCell = f[4];
+  const received = Number(receivedCell.value || 0);
+  const expected = computeExpectedForRow(tr);
+
+  receivedCell.classList.remove("mismatch");
+
+  // Smart baseline fix: no expected history yet
+  if(expected === 0){
+    return;
+  }
+
+  if(received !== expected){
+    receivedCell.classList.add("mismatch");
+  }
+}
+
+function recalcAllDiscrepancies(){
+  document.querySelectorAll("#stockTable tbody tr").forEach(tr=>{
+    applyDiscrepancyHighlight(tr);
+  });
+}
+
+function saveData(){
+  recalcAllDiscrepancies();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(getAllRows()));
+  renderReport();
+}
+
+function updateCalculatedFields(tr){
+  const f = getFieldSets(tr);
+  const calc = calculateDates(f[0].value);
+  f[1].value = calc.day;
+  f[7].value = calc.collection;
+  f[8].value = calc.ret;
   saveData();
 }
 
-function deleteRow(btn) {
-  const tr = btn.closest("tr");
-  tr.remove();
-  if (document.querySelectorAll("#stockTable tbody tr").length === 0) {
+function deleteRow(btn){
+  btn.closest("tr").remove();
+  if(document.querySelectorAll("#stockTable tbody tr").length === 0){
     buildRow();
   }
   saveData();
 }
 
-function buildRow(data = {}) {
+function buildRow(data={}){
   const tbody = document.querySelector("#stockTable tbody");
   const tr = document.createElement("tr");
-
   const cells = [];
-  for (let i = 0; i < 10; i++) {
+  for(let i=0;i<12;i++){
     const td = document.createElement("td");
     tr.appendChild(td);
     cells.push(td);
   }
 
-  const dateInput = createInput("date", data.date || "", false, () => updateCalculatedFields(tr));
-  const dayInput = createInput("text", data.day || "", true);
+  const dateInput = createInput("date", data.date || "", false, ()=>updateCalculatedFields(tr));
+  const dayInput = createInput("text", data.day || "", true, null);
   const areaSelect = createSelect(AREAS, data.area || "", saveData);
   const linenSelect = createSelect(LINEN_TYPES, data.linen || "", saveData);
+  const receivedInput = createInput("number", data.received || "", false, saveData);
   const cleanInput = createInput("number", data.clean || "", false, saveData);
   const dirtyInput = createInput("number", data.dirty || "", false, saveData);
-  const collectionInput = createInput("date", data.collection || "", true);
-  const returnInput = createInput("date", data.ret || "", true);
+  const collectionInput = createInput("date", data.collection || "", true, null);
+  const returnInput = createInput("date", data.ret || "", true, null);
   const notesInput = createTextarea(data.notes || "", saveData);
-
+  const saveButton = document.createElement("button");
   const deleteButton = document.createElement("button");
+
+  saveButton.textContent = "Save";
+  saveButton.className = "save-btn";
+  saveButton.onclick = function(){ setRowLocked(tr, true); saveData(); };
+
   deleteButton.textContent = "Delete";
   deleteButton.className = "delete-btn";
-  deleteButton.onclick = function() { deleteRow(deleteButton); };
+  deleteButton.onclick = function(){ deleteRow(deleteButton); };
 
   cells[0].appendChild(dateInput);
   cells[1].appendChild(dayInput);
   cells[2].appendChild(areaSelect);
   cells[3].appendChild(linenSelect);
-  cells[4].appendChild(cleanInput);
-  cells[5].appendChild(dirtyInput);
-  cells[6].appendChild(collectionInput);
-  cells[7].appendChild(returnInput);
-  cells[8].appendChild(notesInput);
-  cells[9].appendChild(deleteButton);
+  cells[4].appendChild(receivedInput);
+  cells[5].appendChild(cleanInput);
+  cells[6].appendChild(dirtyInput);
+  cells[7].appendChild(collectionInput);
+  cells[8].appendChild(returnInput);
+  cells[9].appendChild(notesInput);
+  cells[10].appendChild(saveButton);
+  cells[11].appendChild(deleteButton);
 
   tbody.appendChild(tr);
 
-  if (data.date) updateCalculatedFields(tr);
+  if(data.date){
+    updateCalculatedFields(tr);
+  } else {
+    setRowLocked(tr, !!data.locked);
+  }
+  setRowLocked(tr, !!data.locked);
 }
 
-function addRow() {
+function addRow(){
   buildRow();
   saveData();
 }
 
-function clearData() {
-  if (confirm("Clear all saved data from this iPad?")) {
+function clearData(){
+  if(confirm("Clear all saved data from this device?")){
     localStorage.removeItem(STORAGE_KEY);
     document.querySelector("#stockTable tbody").innerHTML = "";
     buildRow();
@@ -244,22 +384,99 @@ function clearData() {
   }
 }
 
-function loadData() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) {
-    buildRow();
+function setDefaultMonth(){
+  const monthInput = document.getElementById("reportMonth");
+  if(monthInput.value) return;
+  const now = new Date();
+  monthInput.value = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
+}
+
+function setMetric(id, value, variance){
+  const el = document.getElementById(id);
+  el.textContent = value;
+  if(variance){
+    el.classList.remove("positive", "negative");
+    const num = Number(value || 0);
+    if(num < 0) el.classList.add("negative");
+    if(num > 0) el.classList.add("positive");
+  }
+}
+
+function renderReport(){
+  setDefaultMonth();
+  const monthValue = document.getElementById("reportMonth").value;
+  const rows = getAllRows().filter(r => r.date && r.date.startsWith(monthValue));
+
+  let totalSent=0, totalReceived=0, napkinsSent=0, napkinsReceived=0, clothsSent=0, clothsReceived=0;
+  const areaMap = {};
+
+  rows.forEach(r=>{
+    totalSent += r.dirty;
+    totalReceived += r.received;
+
+    const area = r.area || "Unassigned";
+    if(!areaMap[area]) areaMap[area] = {sent:0, received:0};
+    areaMap[area].sent += r.dirty;
+    areaMap[area].received += r.received;
+
+    if(r.linen === "Napkins"){
+      napkinsSent += r.dirty;
+      napkinsReceived += r.received;
+    } else if(r.linen === "Polishing Cloths"){
+      clothsSent += r.dirty;
+      clothsReceived += r.received;
+    }
+  });
+
+  setMetric("totalSent", totalSent, false);
+  setMetric("totalReceived", totalReceived, false);
+  setMetric("totalVariance", totalReceived - totalSent, true);
+  setMetric("napkinsSent", napkinsSent, false);
+  setMetric("napkinsReceived", napkinsReceived, false);
+  setMetric("clothsSent", clothsSent, false);
+  setMetric("clothsReceived", clothsReceived, false);
+
+  const tbody = document.querySelector("#areaReportTable tbody");
+  tbody.innerHTML = "";
+
+  const areas = Object.keys(areaMap).sort();
+  if(areas.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td colspan="4">No data for the selected month.</td>';
+    tbody.appendChild(tr);
     return;
   }
-  try {
+
+  areas.forEach(area=>{
+    const variance = areaMap[area].received - areaMap[area].sent;
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td>' + area + '</td><td>' + areaMap[area].sent + '</td><td>' + areaMap[area].received + '</td><td class="' + (variance < 0 ? "negative" : variance > 0 ? "positive" : "") + '">' + variance + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function loadData(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(!saved){
+    buildRow();
+    setDefaultMonth();
+    saveData();
+    return;
+  }
+
+  try{
     const rows = JSON.parse(saved);
-    if (!Array.isArray(rows) || rows.length === 0) {
+    if(!Array.isArray(rows) || rows.length === 0){
       buildRow();
-      return;
+    } else {
+      rows.forEach(r => buildRow(r));
     }
-    rows.forEach(r => buildRow(r));
-  } catch (e) {
+  } catch(e){
     buildRow();
   }
+
+  setDefaultMonth();
+  saveData();
 }
 
 window.onload = loadData;
