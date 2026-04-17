@@ -188,6 +188,27 @@ async function sendRowToWebhook(row){
     body: JSON.stringify(row)
   });
 }
+ function sendCurrentRow(tr){
+  const f = getFieldSets(tr);
+
+  const row = {
+    date: f[0].value,
+    day: f[1].value,
+    area: f[2].value,
+    linen: f[3].value,
+    received: Number(f[4].value || 0),
+    clean: Number(f[5].value || 0),
+    dirty: Number(f[6].value || 0),
+    collection: f[7].value,
+    ret: f[8].value,
+    notes: f[9].value,
+    locked: true
+  };
+
+  if(row.date){
+    sendRowToWebhook(row);
+  }
+} 
 function getAllRows(){
   const rows=[]; document.querySelectorAll("#stockTable tbody tr").forEach(tr=>{
     const f=getFieldSets(tr);
@@ -196,13 +217,38 @@ function getAllRows(){
 }
 function setRowLocked(tr,locked){
   const f=getFieldSets(tr);
-  f[0].readOnly=!!locked; f[1].readOnly=true; f[4].readOnly=!!locked; f[5].readOnly=!!locked; f[6].readOnly=!!locked; f[7].readOnly=true; f[8].readOnly=true; f[9].readOnly=!!locked;
-  f[2].disabled=!!locked; f[3].disabled=!!locked;
-  tr.dataset.locked=locked?"true":"false"; tr.classList.toggle("locked-row",!!locked);
+  f[0].readOnly=!!locked;
+  f[1].readOnly=true;
+  f[4].readOnly=!!locked;
+  f[5].readOnly=!!locked;
+  f[6].readOnly=!!locked;
+  f[7].readOnly=true;
+  f[8].readOnly=true;
+  f[9].readOnly=!!locked;
+  f[2].disabled=!!locked;
+  f[3].disabled=!!locked;
+
+  tr.dataset.locked=locked?"true":"false";
+  tr.classList.toggle("locked-row",!!locked);
+
   const saveBtn=tr.querySelector(".save-btn, .unlock-btn");
   if(saveBtn){
-    if(locked){ saveBtn.textContent="Unlock"; saveBtn.className="unlock-btn"; saveBtn.onclick=function(){ setRowLocked(tr,false); saveData(); }; }
-    else { saveBtn.textContent="Save"; saveBtn.className="save-btn"; saveBtn.onclick=function(){ setRowLocked(tr,true); saveData(); }; }
+    if(locked){
+      saveBtn.textContent="Unlock";
+      saveBtn.className="unlock-btn";
+      saveBtn.onclick=function(){
+        setRowLocked(tr,false);
+        saveData();
+      };
+    } else {
+      saveBtn.textContent="Save";
+      saveBtn.className="save-btn";
+      saveBtn.onclick=function(){
+        setRowLocked(tr,true);
+        sendCurrentRow(tr);
+        saveData();
+      };
+    }
   }
 }
 function computeExpectedForRow(targetTr){
@@ -248,26 +294,11 @@ function buildRow(data={}){
   const notesInput=createTextarea(data.notes||"",saveData);
   const saveButton=document.createElement("button");
   const deleteButton=document.createElement("button");
-  saveButton.textContent="Save"; saveButton.className="save-btn"; saveButton.onclick=function(){ 
+  saveButton.textContent="Save";
+saveButton.className="save-btn";
+saveButton.onclick=function(){
   setRowLocked(tr,true);
-
-  const f = getFieldSets(tr);
-
-  const row = {
-    date: f[0].value,
-    day: f[1].value,
-    area: f[2].value,
-    linen: f[3].value,
-    received: Number(f[4].value || 0),
-    clean: Number(f[5].value || 0),
-    dirty: Number(f[6].value || 0),
-    collection: f[7].value,
-    ret: f[8].value,
-    notes: f[9].value,
-    locked: true
-  };
-
-  sendRowToWebhook(row);
+  sendCurrentRow(tr);
   saveData();
 };
   deleteButton.textContent="Delete"; deleteButton.className="delete-btn"; deleteButton.onclick=function(){ deleteRow(deleteButton); };
