@@ -162,6 +162,33 @@ textarea{min-height:44px;resize:vertical}
 
 <script>
 const STORAGE_KEY = "linenStocktakeData_v8";
+  const AIRTABLE_TOKEN = "PASTE_YOUR_TOKEN_HERE";
+const BASE_ID = "PASTE_YOUR_BASE_ID_HERE";
+const TABLE_NAME = "Linen Stock";
+  async function saveToAirtable(record) {
+  const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`;
+
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${AIRTABLE_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      fields: {
+        Date: record.date,
+        Area: record.area,
+        "Linen Type": record.linen,
+        "Clean Received (Morning)": record.received,
+        "Clean On Hand (Evening)": record.clean,
+        "Dirty Sent (Evening)": record.dirty,
+        "Collection Day": record.collection,
+        "Return Day": record.ret,
+        Notes: record.notes
+      }
+    })
+  });
+}
 const AREAS = ["", "1910 Dining Room", "DOY Bar", "Garden", "Brabourne Room"];
 const LINEN_TYPES = ["", "Napkins", "Polishing Cloths"];
 
@@ -213,7 +240,17 @@ function applyDiscrepancyHighlight(tr){
   if(received!==expected) receivedCell.classList.add("mismatch");
 }
 function recalcAllDiscrepancies(){ document.querySelectorAll("#stockTable tbody tr").forEach(tr=>applyDiscrepancyHighlight(tr)); }
-function saveData(){ recalcAllDiscrepancies(); localStorage.setItem(STORAGE_KEY, JSON.stringify(getAllRows())); renderReport(); }
+function saveData(){
+  recalcAllDiscrepancies();
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(getAllRows()));
+
+  renderReport();
+
+  getAllRows().forEach(row => {
+    if(row.date) saveToAirtable(row);
+  });
+}
 function updateCalculatedFields(tr){ const f=getFieldSets(tr), calc=calculateDates(f[0].value); f[1].value=calc.day; f[7].value=calc.collection; f[8].value=calc.ret; saveData(); }
 function deleteRow(btn){ btn.closest("tr").remove(); if(document.querySelectorAll("#stockTable tbody tr").length===0) buildRow(); saveData(); }
 function buildRow(data={}){
